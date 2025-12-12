@@ -1,6 +1,6 @@
 # financial_dashboard  
-### **Structure of the Project**
-'''
+## **Structure of the Project**
+```
 financial-dashboard/
 ├── data/
 │ ├── raw/
@@ -15,4 +15,4 @@ financial-dashboard/
 │ └── streamlit_app.py
 ├── requirements.txt
 └── README.md
-'''
+```
