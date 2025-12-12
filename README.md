@@ -1,5 +1,6 @@
 # financial_dashboard  
-1. Structure of the file
+### **Structure of the Project**
+'''
 financial-dashboard/
 ├── data/
 │ ├── raw/
@@ -14,3 +15,4 @@ financial-dashboard/
 │ └── streamlit_app.py
 ├── requirements.txt
 └── README.md
+'''
