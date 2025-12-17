@@ -2,60 +2,78 @@
 import pandas as pd
 import numpy as np
 class FinancialRatioCalculator:
-    @staticmethod
-    def calculate_liquidity_ratios(df_balance, df_income):
+    def _get_financial_value(self, df, keys):
+        for key in keys:
+            if key in df.index:
+                return df.loc[key]
+        return np.nan
+
+    def _calculate_ratio(self, numerator, denominator):
+        """Safely calculate the ratio of two numbers or two pandas Series."""
+        if isinstance(denominator, pd.Series):
+            # Replace 0 with NaN to avoid division by zero issues
+            denominator = denominator.replace(0, np.nan)
+        elif denominator == 0:
+            return np.nan
+
+        return numerator / denominator
+
+    def calculate_liquidity_ratios(self, df_balance, df_income):
         """Calculate current ratio, quick ratio, cash ratio"""
         ratios = {}
 
-        # Current Ratio = Current Assets / Current Liabilities
-        current_assets = df_balance.loc['Current Assets'] if 'Current Assets' in df_balance.index else df_balance.loc['Total Current Assets']
-        current_liabilities = df_balance.loc['Current Liabilities'] if 'Current Liabilities' in df_balance.index else df_balance.loc['Total Current Liabilities']
-        ratios['current_ratio'] = current_assets / current_liabilities
+        # Current Ratio
+        current_assets = self._get_financial_value(df_balance, ['Current Assets', 'Total Current Assets'])
+        current_liabilities = self._get_financial_value(df_balance, ['Current Liabilities', 'Total Current Liabilities'])
+        ratios['current_ratio'] = self._calculate_ratio(current_assets, current_liabilities)
 
-        # Quick Ratio = (Current Assets - Inventory) / Current Liabilities
-        inventory = df_balance.loc['Inventory'] if 'Inventory' in df_balance.index else 0
-        ratios['quick_ratio'] = (current_assets - inventory) / current_liabilities
+        # Quick Ratio
+        inventory = self._get_financial_value(df_balance, ['Inventory'])
+        if isinstance(inventory, pd.Series):
+            inventory = inventory.fillna(0)
+        elif pd.isna(inventory):
+            inventory = 0
+        ratios['quick_ratio'] = self._calculate_ratio(current_assets - inventory, current_liabilities)
+
+        # Cash Ratio
+        cash = self._get_financial_value(df_balance, ['Cash', 'Cash And Cash Equivalents'])
+        ratios['cash_ratio'] = self._calculate_ratio(cash, current_liabilities)
 
         return pd.DataFrame(ratios)
-    @staticmethod
-    def calculate_profitability_ratios(df_income, df_balance):
+
+    def calculate_profitability_ratios(self, df_income, df_balance):
         """Calculate ROE, ROA, Gross Margin, Net Margin"""
         ratios = {}
 
-        # ROE = Net Income / Shareholders' Equity
-        net_income = df_income.loc['Net Income']
-        shareholders_equity = df_balance.loc['Total Stockholders Equity']
-        ratios['roe'] = net_income / shareholders_equity
+        net_income = self._get_financial_value(df_income, ['Net Income'])
+        shareholders_equity = self._get_financial_value(df_balance, ['Total Stockholders Equity'])
+        total_assets = self._get_financial_value(df_balance, ['Total Assets'])
+        revenue = self._get_financial_value(df_income, ['Total Revenue'])
+        gross_profit = self._get_financial_value(df_income, ['Gross Profit'])
 
-        # ROA = Net Income / Total Assets
-        total_assets = df_balance.loc['Total Assets']
-        ratios['roa'] = net_income / total_assets
-
-        # Margins
-        revenue = df_income.loc['Total Revenue']
-        gross_profit = df_income.loc['Gross Profit']
-        ratios['gross_margin'] = gross_profit / revenue
-        ratios['net_margin'] = net_income / revenue
-
-        # DuPont Analysis
-        ratios['asset_turnover'] = revenue / total_assets
-        ratios['financial_leverage'] = total_assets / shareholders_equity
+        ratios['roe'] = self._calculate_ratio(net_income, shareholders_equity)
+        ratios['roa'] = self._calculate_ratio(net_income, total_assets)
+        ratios['gross_margin'] = self._calculate_ratio(gross_profit, revenue)
+        ratios['net_margin'] = self._calculate_ratio(net_income, revenue)
+        ratios['asset_turnover'] = self._calculate_ratio(revenue, total_assets)
+        ratios['financial_leverage'] = self._calculate_ratio(total_assets, shareholders_equity)
 
         return pd.DataFrame(ratios)
-    @staticmethod
-    def calculate_solvency_ratios(df_balance, df_income):
+
+    def calculate_solvency_ratios(self, df_balance, df_income):
         """Calculate Debt-to-Equity, Interest Coverage"""
         ratios = {}
 
-        # Debt to Equity = Total Debt / Total Equity
-        total_debt = df_balance.loc['Total Debt'] if 'Total Debt' in df_balance.index else 0
-        total_equity = df_balance.loc['Total Stockholders Equity']
-        ratios['debt_to_equity'] = total_debt / total_equity
+        total_debt = self._get_financial_value(df_balance, ['Total Debt'])
+        if isinstance(total_debt, pd.Series):
+            total_debt = total_debt.fillna(0)
+        elif pd.isna(total_debt):
+            total_debt = 0
+        total_equity = self._get_financial_value(df_balance, ['Total Stockholders Equity'])
+        ebit = self._get_financial_value(df_income, ['EBIT', 'Operating Income'])
+        interest_expense = self._get_financial_value(df_income, ['Interest Expense'])
 
-        # Interest Coverage = EBIT / Interest Expense
-        ebit = df_income.loc['EBIT'] if 'EBIT' in df_income.index else df_income.loc['Operating Income']
-        interest_expense = df_income.loc['Interest Expense']
-        ratios['interest_coverage'] = ebit / interest_expense
+        ratios['debt_to_equity'] = self._calculate_ratio(total_debt, total_equity)
+        ratios['interest_coverage'] = self._calculate_ratio(ebit, interest_expense)
 
         return pd.DataFrame(ratios)
-    

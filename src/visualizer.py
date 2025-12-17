@@ -3,26 +3,26 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly.express as px
 class FinancialVisualizer:
-    @staticmethod
-    def create_ratio_trend_chart(ratios_df, ratio_names):
+    def create_ratio_trend_chart(self, ratios_df, ratio_names):
         """Create multi-line chart for ratio trends"""
+        if ratios_df.empty:
+            return go.Figure()
+        rows = (len(ratio_names) + 1) // 2
         fig = make_subplots(
-        rows=2, cols=2,
-        subplot_titles=("Liquidity Ratios", "Profitability Ratios", 
-        "Solvency Ratios", "Efficiency Ratios")
+            rows=rows,
+            cols=2,
+            subplot_titles=ratio_names
         )
 
-        # Add traces for each ratio category
-        colors = px.colors.qualitative.Set3
-
-        for i, ratio in enumerate(ratio_names[:4]):
+        for i, ratio in enumerate(ratio_names):
+            row = (i // 2) + 1
+            col = (i % 2) + 1
             fig.add_trace(
-            go.Scatter(x=ratios_df.index, y=ratios_df[ratio],
-            name=ratio, line=dict(color=colors[i])),
-            row=1, col=1 if i < 2 else 2
+                go.Scatter(x=ratios_df.index, y=ratios_df[ratio], name=ratio),
+                row=row, col=col
             )
 
-        fig.update_layout(height=600, title_text="Financial Ratio Trends")
+        fig.update_layout(height=300 * rows, title_text="Financial Ratio Trends")
         return fig
 
     @staticmethod
